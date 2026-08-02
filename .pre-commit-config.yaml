@@ -1,0 +1,96 @@
+# -----------------------------------------------------------------------------
+# Pre-commit configuration
+#
+# Install:
+#   pip install pre-commit
+#
+# Enable hooks:
+#   pre-commit install
+#
+# Run manually on all files:
+#   pre-commit run --all-files
+# -----------------------------------------------------------------------------
+
+repos:
+  # ---------------------------------------------------------------------------
+  # Automatically format Python code
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+
+  # ---------------------------------------------------------------------------
+  # Fast Python linter
+  # Checks for:
+  # - Unused imports
+  # - Unused variables
+  # - Style issues
+  # - Common bugs
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  # ---------------------------------------------------------------------------
+  # Static type checking
+  # Helps catch type-related bugs before runtime
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.1
+    hooks:
+      - id: mypy
+
+  # ---------------------------------------------------------------------------
+  # General file quality checks
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent accidentally committing huge files
+      - id: check-added-large-files
+
+      # Validate YAML syntax
+      - id: check-yaml
+
+      # Validate JSON syntax
+      - id: check-json
+
+      # Validate TOML syntax
+      - id: check-toml
+
+      # Ensure files end with a newline
+      - id: end-of-file-fixer
+
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+
+      # Prevent merge conflict markers from being committed
+      - id: check-merge-conflict
+
+      # Detect accidental private keys
+      - id: detect-private-key
+
+  # ---------------------------------------------------------------------------
+  # Detect secrets such as API keys, passwords, and tokens
+  # Useful for GenAI projects with OpenAI, Anthropic, AWS, etc.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+
+  # ---------------------------------------------------------------------------
+  # Run unit tests before every commit
+  # Uncomment after your project has tests
+  # ---------------------------------------------------------------------------
+  # - repo: local
+  #   hooks:
+  #     - id: pytest
+  #       name: Run Pytest
+  #       entry: pytest
+  #       language: system
+  #       pass_filenames: false
+  #       always_run: true
