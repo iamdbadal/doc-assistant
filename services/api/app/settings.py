@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     project_name: str = "Contextual Document Assistant"
     vector_db_url: str = ""
@@ -10,5 +11,6 @@ class Settings(BaseSettings):
     minio_secret_key: str = "minioadmin"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
 
 settings = Settings()
