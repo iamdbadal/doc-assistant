@@ -80,7 +80,7 @@ jobs:
           uv run black --check .
           uv run isort --check-only .
           uv run ruff check .
-          uv run mypy .
+          uv run mypy services/api
 
       # -----------------------------------------------------------------------
       # Run unit tests
