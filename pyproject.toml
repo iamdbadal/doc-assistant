@@ -21,3 +21,4 @@ dev = [
 ]
 [tool.mypy]
 mypy_path = "services/api"
+explicit_package_bases = true
