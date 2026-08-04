@@ -1,7 +1,10 @@
-import logging
 import json
+import logging
+
 from fastapi import FastAPI, Request
+
 from app.settings import settings
+
 
 class JSONFormatter(logging.Formatter):
     def format(self, record):
@@ -13,6 +16,7 @@ class JSONFormatter(logging.Formatter):
         }
         return json.dumps(log_record)
 
+
 # Setup JSON Logger
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
@@ -20,9 +24,10 @@ handler.setFormatter(JSONFormatter())
 logger.addHandler(handler)
 logger.setLevel(settings.log_level)
 # Prevent duplicate logs if running uvicorn
-logger.propagate = False 
+logger.propagate = False
 
 app = FastAPI(title=settings.project_name)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -30,6 +35,7 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     logger.info(f"Completed request with status: {response.status_code}")
     return response
+
 
 @app.get("/health")
 async def health_check():
