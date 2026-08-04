@@ -20,4 +20,4 @@ dev = [
     "ruff==0.12.8",
 ]
 [tool.mypy]
-mypypath = "services/api"
+mypy_path = "services/api"
