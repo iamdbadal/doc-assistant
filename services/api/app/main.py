@@ -1,9 +1,8 @@
 import json
 import logging
 
-from fastapi import FastAPI, Request
-
 from app.settings import settings
+from fastapi import FastAPI, Request
 
 
 class JSONFormatter(logging.Formatter):
