@@ -8,10 +8,8 @@
 #   2. Install Python
 #   3. Install uv (modern Python package manager)
 #   4. Sync project dependencies
-#   5. Check code formatting (Black)
-#   6. Run Ruff linter
-#   7. Run MyPy type checker
-#   8. Run Pytest unit tests
+#   5. Run Lint and Type Check (Black, isort, Ruff, MyPy)
+#   6. Run Pytest unit tests
 #
 # Documentation:
 # https://docs.github.com/actions
@@ -75,22 +73,14 @@ jobs:
         run: uv sync --all-extras --dev
 
       # -----------------------------------------------------------------------
-      # Check code formatting
+      # Run Linting, Formatting, and Type Checking
       # -----------------------------------------------------------------------
-      - name: Black Formatting Check
-        run: uv run black --check .
-
-      # -----------------------------------------------------------------------
-      # Run Ruff linter
-      # -----------------------------------------------------------------------
-      - name: Ruff Lint
-        run: uv run ruff check .
-
-      # -----------------------------------------------------------------------
-      # Run MyPy type checking
-      # -----------------------------------------------------------------------
-      - name: MyPy Type Check
-        run: uv run mypy .
+      - name: Lint and Type Check
+        run: |
+          uv run black --check .
+          uv run isort --check-only .
+          uv run ruff check .
+          uv run mypy .
 
       # -----------------------------------------------------------------------
       # Run unit tests
