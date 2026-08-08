@@ -1,16 +1,55 @@
+# ------------------------------------------------------------
+# Docker Compose for Document Assistant System
+# Services included:
+# - MinIO (object storage)
+# - Redis (cache / queue)
+# - PostgreSQL (primary database)
+# ------------------------------------------------------------
+
 version: '3.8'
+
 services:
+  # ----------------------------------------------------------
+  # MinIO: S3-compatible object storage
+  # Used for storing uploaded documents, chunks, embeddings, etc.
+  # ----------------------------------------------------------
   minio:
     image: minio/minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # API
+      - "9001:9001"   # Console UI
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
 
+  # ----------------------------------------------------------
+  # Redis: lightweight in-memory store
+  # Useful for caching, rate limiting, background jobs, etc.
+  # ----------------------------------------------------------
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+
+  # ----------------------------------------------------------
+  # PostgreSQL: main relational database
+  # Stores metadata, users, tenants, document info, chunk info, etc.
+  # ----------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# ------------------------------------------------------------
+# Docker volumes
+# Used to persist PostgreSQL data across container restarts
+# ------------------------------------------------------------
+volumes:
+  postgres_data:

@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.2.2",
     "sentence-transformers>=5.6.1",
+    "uvicorn>=0.52.1",
 ]
 
 [dependency-groups]
@@ -16,6 +17,7 @@ dev = [
     "black==24.10.0",
     "isort==5.13.2",
     "mypy==1.17.1",
+    "pre-commit>=4.6.1",
     "pytest==9.1.1",
     "ruff==0.12.8",
 ]
@@ -23,6 +25,10 @@ dev = [
 [tool.mypy]
 mypy_path = "services/api"
 explicit_package_bases = true
+files = ["services/api/app"]
 
 [tool.pytest.ini_options]
 pythonpath = "services/api"
+
+[tool.isort]
+profile = "black"

@@ -1,6 +1,8 @@
 import json
 import logging
+from contextlib import asynccontextmanager
 
+from app.db.models import Base, engine
 from app.settings import settings
 from fastapi import FastAPI, Request
 
@@ -39,3 +41,14 @@ async def log_requests(request: Request, call_next):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "project": settings.project_name}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables on startup (In a real production environment, use Alembic migrations instead)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
