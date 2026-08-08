@@ -10,6 +10,10 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "sentence-transformers>=5.6.1",
     "uvicorn>=0.52.1",
+    "sqlalchemy>=2.0.0",
+    "asyncpg>=0.29.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
 ]
 
 [dependency-groups]
@@ -20,6 +24,8 @@ dev = [
     "pre-commit>=4.6.1",
     "pytest==9.1.1",
     "ruff==0.12.8",
+    "types-python-jose",
+    "types-passlib",
 ]
 
 [tool.mypy]

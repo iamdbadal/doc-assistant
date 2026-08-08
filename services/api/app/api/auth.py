@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.models import Tenant, User, get_db
-from app.schemas.auth import UserCreate
+from app.models.schemas import UserCreate
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
