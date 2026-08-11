@@ -163,19 +163,22 @@ jobs:
         run: uv sync --all-extras --dev
 
 
-      # -----------------------------------------------------------------------
+            # -----------------------------------------------------------------------
       # 6. Run database migrations
       #
-      # The PostgreSQL service is already running at this point.
+      # alembic.ini is located in the repository root:
       #
-      # Alembic creates the database tables required by the authentication
-      # tests, including tenants and users.
+      #   doc-assistant/
+      #   ├── alembic.ini
+      #   └── services/
+      #       └── api/
+      #           └── alembic/
+      #
+      # Therefore Alembic must be executed from the repository root.
       # -----------------------------------------------------------------------
 
       - name: Run Database Migrations
-        working-directory: services/api
         run: uv run alembic upgrade head
-
 
       # -----------------------------------------------------------------------
       # 7. Run formatting, linting, and type checks

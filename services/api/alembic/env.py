@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from logging.config import fileConfig
@@ -6,21 +7,34 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-# ---------------------------------------------------------------------------
-# Make the application package importable.
+# =============================================================================
+# Make the application package importable
+# =============================================================================
 #
 # Project structure:
+#
 # doc-assistant/
+# ├── alembic.ini
 # └── services/
 #     └── api/
 #         ├── app/
 #         └── alembic/
+#             └── env.py
 #
-# __file__ is:
+# This file is:
+#
 # services/api/alembic/env.py
 #
-# Therefore ".." is services/api.
-# ---------------------------------------------------------------------------
+# Therefore ".." points to:
+#
+# services/api/
+#
+# Adding that directory to sys.path allows:
+#
+# from app.db.models import Base
+#
+# to work when Alembic is executed from the project root.
+# =============================================================================
 
 sys.path.insert(
     0,
@@ -30,17 +44,37 @@ sys.path.insert(
 from app.db.models import Base
 from app.settings import settings
 
-# Alembic Config object
+# =============================================================================
+# Alembic configuration
+# =============================================================================
+
 config = context.config
 
 
+# =============================================================================
 # Configure Python logging
+# =============================================================================
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-# SQLAlchemy metadata used by Alembic autogenerate
+# =============================================================================
+# SQLAlchemy metadata
+# =============================================================================
+#
+# Alembic uses this metadata when generating migrations with:
+#
+# alembic revision --autogenerate
+#
+# =============================================================================
+
 target_metadata = Base.metadata
+
+
+# =============================================================================
+# Offline migrations
+# =============================================================================
 
 
 def run_migrations_offline() -> None:
@@ -59,11 +93,20 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+# =============================================================================
+# Online migrations
+# =============================================================================
+
+
 def run_migrations_online() -> None:
     """Run migrations in online mode."""
 
-    # Your application uses asyncpg, so Alembic needs
-    # SQLAlchemy's async engine here as well.
+    # -------------------------------------------------------------------------
+    # The application uses PostgreSQL + asyncpg.
+    #
+    # Therefore we create an asynchronous SQLAlchemy engine.
+    # -------------------------------------------------------------------------
+
     connectable = create_async_engine(
         settings.database_url,
         poolclass=pool.NullPool,
@@ -75,9 +118,12 @@ def run_migrations_online() -> None:
 
         await connectable.dispose()
 
-    import asyncio
-
     asyncio.run(run_async_migrations())
+
+
+# =============================================================================
+# Run migrations using a synchronous SQLAlchemy connection
+# =============================================================================
 
 
 def do_run_migrations(connection) -> None:
@@ -91,6 +137,10 @@ def do_run_migrations(connection) -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
+# =============================================================================
+# Entry point
+# =============================================================================
 
 if context.is_offline_mode():
     run_migrations_offline()
