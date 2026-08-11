@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     debug: bool = False
     api_version: str = "v1"
 
+    # Database
+    database_url: str
+
     # MinIO
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
