@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     api_version: str = "v1"
 
     # Database
-    database_url: str
+    database_url: str = "postgresql+asyncpg://localhost:5432/doc_assistant"
 
     # MinIO
     minio_endpoint: str = "localhost:9000"

@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime, timezone
 
 from app.settings import settings
-from sqlalchemy import Column, DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -14,28 +14,52 @@ class Base(DeclarativeBase):
 class Tenant(Base):
     __tablename__ = "tenants"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, unique=True, index=True)
-    created_at = Column(
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+    name: Mapped[str] = mapped_column(
+        String,
+        unique=True,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
 
-    users = relationship("User", back_populates="tenant")
+    users: Mapped[list["User"]] = relationship(
+        "User",
+        back_populates="tenant",
+    )
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+    email: Mapped[str] = mapped_column(
+        String,
+        unique=True,
+        index=True,
+    )
+    hashed_password: Mapped[str] = mapped_column(String)
+    tenant_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("tenants.id"),
+    )
 
-    tenant = relationship("Tenant", back_populates="users")
+    tenant: Mapped["Tenant"] = relationship(
+        "Tenant",
+        back_populates="users",
+    )
 
 
-# Database configuration comes from .env through Settings
 DATABASE_URL = settings.database_url
 
 engine = create_async_engine(
