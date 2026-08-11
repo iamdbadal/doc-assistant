@@ -1,89 +1,208 @@
 # =============================================================================
 # GitHub Actions - Continuous Integration (CI)
 #
-# This workflow runs on every push and pull request.
+# This workflow runs on:
+#   1. Every push
+#   2. Every pull request
 #
-# It performs the following checks:
-#   1. Checkout the repository
-#   2. Install Python
-#   3. Install uv (modern Python package manager)
-#   4. Sync project dependencies
-#   5. Run Lint and Type Check (Black, isort, Ruff, MyPy)
-#   6. Run Pytest unit tests
+# It performs:
+#   1. Checkout repository
+#   2. Setup Python 3.11
+#   3. Install uv
+#   4. Start PostgreSQL service
+#   5. Install project dependencies
+#   6. Run Alembic database migrations
+#   7. Run formatting/linting/type checks
+#   8. Run Pytest
 #
-# Documentation:
-# https://docs.github.com/actions
-# https://docs.astral.sh/uv/
 # =============================================================================
 
 name: CI Pipeline
 
+# -----------------------------------------------------------------------------
+# Workflow triggers
+# -----------------------------------------------------------------------------
+
 on:
+  # Run CI whenever code is pushed to any branch.
   push:
     branches:
       - "**"
 
+  # Run CI for every pull request targeting any branch.
   pull_request:
     branches:
       - "**"
 
+
+# =============================================================================
+# Jobs
+# =============================================================================
+
 jobs:
+
+  # ---------------------------------------------------------------------------
+  # Main quality-check job
+  # ---------------------------------------------------------------------------
+
   quality-checks:
+
+    # Name displayed in GitHub Actions.
     name: Code Quality & Tests
 
+    # Use GitHub's Ubuntu runner.
     runs-on: ubuntu-latest
 
+    # -------------------------------------------------------------------------
+    # PostgreSQL service
+    #
+    # GitHub Actions runners do not automatically have our application's
+    # PostgreSQL database running.
+    #
+    # This service starts PostgreSQL before our tests execute.
+    # -------------------------------------------------------------------------
+
+    services:
+
+      postgres:
+        # PostgreSQL version used by CI.
+        image: postgres:16
+
+        # PostgreSQL container configuration.
+        #
+        # IMPORTANT:
+        # POSTGRES_HOST_AUTH_METHOD=trust is used only for this temporary
+        # CI database. It avoids putting a password into the repository and
+        # therefore avoids triggering detect-secrets.
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: doc_assistant
+          POSTGRES_HOST_AUTH_METHOD: trust
+
+        # Expose PostgreSQL on the GitHub runner.
+        ports:
+          - 5432:5432
+
+        # Wait until PostgreSQL is actually ready before continuing.
+        options: >-
+          --health-cmd "pg_isready -U postgres -d doc_assistant"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # -------------------------------------------------------------------------
+    # Environment variables
+    # -------------------------------------------------------------------------
+
+    env:
+
+      # Database URL consumed by the application's Settings class.
+      #
+      # There is intentionally no password here because the PostgreSQL
+      # service is configured with trust authentication.
+      DATABASE_URL: postgresql+asyncpg://postgres@localhost:5432/doc_assistant
+
+    # ========================================================================
+    # Steps
+    # ========================================================================
+
     steps:
+
       # -----------------------------------------------------------------------
-      # Checkout repository
+      # 1. Checkout repository
       # -----------------------------------------------------------------------
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+
       # -----------------------------------------------------------------------
-      # Setup Python
+      # 2. Setup Python
       # -----------------------------------------------------------------------
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
+          # Match the Python version used by the project's CI configuration.
           python-version: "3.11"
 
+
       # -----------------------------------------------------------------------
-      # Install uv
+      # 3. Install uv
       # -----------------------------------------------------------------------
+
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
+
       # -----------------------------------------------------------------------
-      # Cache uv downloads for faster builds
+      # 4. Cache uv downloads
+      #
+      # This makes subsequent CI runs faster because downloaded packages
+      # can be reused when the uv.lock file has not changed.
       # -----------------------------------------------------------------------
+
       - name: Enable uv Cache
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/uv
+          path: ~/.cache/uv
+
+          # Create a new cache when uv.lock changes.
           key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+
+          # If the exact cache does not exist, try an older uv cache.
           restore-keys: |
             ${{ runner.os }}-uv-
 
+
       # -----------------------------------------------------------------------
-      # Install project dependencies
+      # 5. Install project dependencies
       # -----------------------------------------------------------------------
+
       - name: Install Dependencies
         run: uv sync --all-extras --dev
 
-      # -----------------------------------------------------------------------
-      # Run Linting, Formatting, and Type Checking
-      # -----------------------------------------------------------------------
-      - name: Lint and Type Check
-        run: |
-          uv run black --check .
-          uv run isort --check-only .
-          uv run ruff check .
-          uv run mypy --config-file pyproject.toml services/api/app
 
       # -----------------------------------------------------------------------
-      # Run unit tests
+      # 6. Run database migrations
+      #
+      # The PostgreSQL service is already running at this point.
+      #
+      # Alembic creates the database tables required by the authentication
+      # tests, including tenants and users.
       # -----------------------------------------------------------------------
+
+      - name: Run Database Migrations
+        working-directory: services/api
+        run: uv run alembic upgrade head
+
+
+      # -----------------------------------------------------------------------
+      # 7. Run formatting, linting, and type checks
+      # -----------------------------------------------------------------------
+
+      - name: Lint and Type Check
+        run: |
+
+          # Check that Python files are formatted with Black.
+          uv run black --check .
+
+          # Check that imports are correctly ordered.
+          uv run isort --check-only .
+
+          # Run Ruff linting.
+          uv run ruff check .
+
+          # Run MyPy type checking against the application code.
+          uv run mypy --config-file pyproject.toml services/api/app
+
+
+      # -----------------------------------------------------------------------
+      # 8. Run tests
+      #
+      # The authentication test connects to the PostgreSQL service started
+      # above, so /auth/signup can perform real database operations.
+      # -----------------------------------------------------------------------
+
       - name: Run Pytest
         run: uv run pytest
