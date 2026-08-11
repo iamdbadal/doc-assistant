@@ -1,5 +1,9 @@
+from pathlib import Path
+
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
@@ -11,8 +15,8 @@ class Settings(BaseSettings):
     api_version: str = "v1"
 
     # Database
-    database_url: str = "postgresql+asyncpg://localhost:5432/doc_assistant"
-
+    # database_url: str = "postgresql+asyncpg://localhost:5432/doc_assistant"
+    database_url: str
     # MinIO
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
@@ -36,7 +40,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -47,4 +51,4 @@ class Settings(BaseSettings):
     llm_url: str | None = None
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
