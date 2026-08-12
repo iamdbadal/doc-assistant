@@ -4,6 +4,9 @@ from contextlib import asynccontextmanager
 
 from app.api.auth import get_current_tenant
 from app.api.auth import router as auth_router
+
+# --- WEEK 3 ADDITION: Import the documents router ---
+from app.api.documents import router as documents_router
 from app.db.models import Base, engine
 from app.settings import settings
 from fastapi import Depends, FastAPI, Request
@@ -61,6 +64,9 @@ async def health_check():
 
 # Include Auth Router
 app.include_router(auth_router)
+
+# --- WEEK 3 ADDITION: Include the Documents Router ---
+app.include_router(documents_router)
 
 
 # Protected Tenant Isolation Test Route

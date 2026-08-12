@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # 1. Document Metadata Model
@@ -50,3 +50,44 @@ class UserCreate(BaseModel):
     email: str
     password: str
     tenant_name: str
+
+
+# --- Upload & DB Response Models ---
+
+
+class UploadInitRequest(BaseModel):
+    """Payload sent by the client to initiate an upload."""
+
+    filename: str = Field(..., json_schema_extra={"example": "annual_report.pdf"})
+    content_type: str = Field(..., json_schema_extra={"example": "application/pdf"})
+    file_size: int = Field(..., gt=0, description="Size in bytes")
+
+
+class UploadInitResponse(BaseModel):
+    """Response containing the presigned URL for direct upload."""
+
+    doc_id: str
+    upload_url: str
+    object_name: str
+
+
+class DocumentStatusUpdate(BaseModel):
+    """Payload to update the status of a document."""
+
+    status: str
+
+
+class DocumentResponse(BaseModel):
+    """Response model for returning database document records."""
+
+    id: str
+    tenant_id: str
+    filename: str
+    object_name: str
+    file_size: Optional[int] = None
+    content_type: Optional[str] = None
+    status: str
+    uploaded_at: datetime
+
+    # This allows Pydantic to read directly from the SQLAlchemy Document object
+    model_config = ConfigDict(from_attributes=True)
