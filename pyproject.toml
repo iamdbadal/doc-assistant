@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart>=0.0.32",
     "alembic>=1.19.1",
     "pwdlib[argon2]>=0.3.0",
+    "minio>=7.2.20",
 ]
 
 [dependency-groups]
