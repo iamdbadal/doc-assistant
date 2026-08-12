@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 from app.settings import settings
-from minio import Minio
-from minio.error import S3Error
+from minio import Minio  # type: ignore
+from minio.error import S3Error  # type: ignore
 
 
 class StorageService:
