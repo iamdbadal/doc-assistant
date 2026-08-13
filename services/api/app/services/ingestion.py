@@ -2,13 +2,13 @@ import re
 from typing import Any, Dict, List
 
 import pymupdf
-import pytesseract
+import pytesseract  # type: ignore
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langdetect import LangDetectException, detect
+from langdetect import LangDetectException, detect  # type: ignore
 from PIL import Image
 
-# Set the path to the Tesseract executable (adjust this path based on your OS and installation)
+# Add this right after the imports in ingestion.py!
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
@@ -33,7 +33,9 @@ def extract_pages_from_pdf(file_bytes: bytes) -> List[Dict[str, Any]]:
                 try:
                     # Render the page to a high-res image (150 DPI is good for OCR)
                     pix = page.get_pixmap(dpi=150)
-                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+                    # FIX: Passed dimensions as a tuple () instead of a list []
+                    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
                     # Run Tesseract OCR on the image
                     text = pytesseract.image_to_string(img)
