@@ -17,6 +17,12 @@ dependencies = [
     "alembic>=1.19.1",
     "pwdlib[argon2]>=0.3.0",
     "minio>=7.2.20",
+    "pymupdf>=1.28.2",
+    "langdetect>=1.0.9",
+    "langchain-text-splitters>=1.1.2",
+    "tiktoken>=0.13.0",
+    "pytesseract>=0.3.13",
+    "pillow>=12.3.0",
 ]
 
 [dependency-groups]

@@ -45,6 +45,20 @@ class StorageService:
             expires=timedelta(seconds=expires_seconds),
         )
 
+    def get_file_bytes(self, object_name: str) -> bytes:
+        """Downloads the raw object bytes from MinIO for backend processing."""
+        response = None
+        try:
+            response = self.client.get_object(self.bucket_name, object_name)
+            return response.read()
+        except S3Error as e:
+            raise RuntimeError(f"Failed to fetch file from object storage: {e}")
+        finally:
+            # Ensure the connection is released back to the urllib3 pool
+            if response:
+                response.close()
+                response.release_conn()
+
     def delete_file(self, object_name: str) -> None:
         """Remove a file from MinIO storage."""
         try:

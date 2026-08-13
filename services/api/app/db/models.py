@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.settings import settings
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -113,6 +113,56 @@ class Document(Base):
     tenant: Mapped["Tenant"] = relationship(
         "Tenant",
         back_populates="documents",
+    )
+
+    # --- Relationship to Chunks ---
+    chunks: Mapped[list["Chunk"]] = relationship(
+        "Chunk",
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
+
+
+# --- Chunk Model ---
+class Chunk(Base):
+    """Represents a chunk of text extracted from a document for RAG."""
+
+    __tablename__ = "chunks"
+
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+    document_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # The actual extracted text piece
+    text_content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Metadata for better RAG retrieval
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    token_count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    document: Mapped["Document"] = relationship(
+        "Document",
+        back_populates="chunks",
     )
 
 

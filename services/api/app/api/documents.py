@@ -1,7 +1,6 @@
 import uuid
 from typing import List
 
-# --- FIX: Changed from get_current_user to get_current_tenant ---
 from app.api.auth import get_current_tenant
 from app.db.models import Document, DocumentStatus, get_db
 from app.models.schemas import (
@@ -10,8 +9,9 @@ from app.models.schemas import (
     UploadInitRequest,
     UploadInitResponse,
 )
+from app.services.processing import process_document_ingestion
 from app.services.storage import storage_service
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -80,6 +80,7 @@ async def initialize_upload(
 async def update_document_status(
     doc_id: str,
     payload: DocumentStatusUpdate,
+    background_tasks: BackgroundTasks,
     tenant_id: str = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
@@ -91,9 +92,15 @@ async def update_document_status(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    doc.status = DocumentStatus(payload.status)
+    new_status = DocumentStatus(payload.status)
+    doc.status = new_status
     await db.commit()
     await db.refresh(doc)
+
+    # Automatically trigger background ingestion when upload is confirmed
+    if new_status == DocumentStatus.UPLOADED:
+        background_tasks.add_task(process_document_ingestion, doc.id)
+
     return doc
 
 
