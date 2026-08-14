@@ -1,7 +1,11 @@
+import asyncio
+
 import tiktoken
 from app.db.models import AsyncSessionLocal, Chunk, Document, DocumentStatus
+from app.services.embeddings import embedding_client
 from app.services.ingestion import chunk_document, extract_pages_from_pdf
 from app.services.storage import storage_service
+from app.services.vector_store import vector_store
 from sqlalchemy import select
 
 tokenizer = tiktoken.get_encoding("cl100k_base")
@@ -9,8 +13,8 @@ tokenizer = tiktoken.get_encoding("cl100k_base")
 
 async def process_document_ingestion(document_id: str) -> int:
     """
-    Background task: Downloads file from MinIO, extracts text, creates chunks,
-    and saves them in PostgreSQL.
+    Background task: Downloads file, extracts text, chunks it,
+    saves to PostgreSQL, generates embeddings, and stores them in Pinecone.
     """
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Document).where(Document.id == document_id))
@@ -49,7 +53,29 @@ async def process_document_ingestion(document_id: str) -> int:
 
             db.add_all(db_chunks)
 
-            # 5. Mark document as COMPLETED
+            # Flush sends the insert statements to Postgres to generate the UUIDs
+            # for each chunk, but DOES NOT commit the transaction yet.
+            await db.flush()
+
+            if db_chunks:
+                # 5. Generate AI Embeddings
+                texts_to_embed = [chunk.text_content for chunk in db_chunks]
+
+                # We use asyncio.to_thread to run synchronous network calls without
+                # blocking the main FastAPI asynchronous event loop!
+                embeddings = await asyncio.to_thread(
+                    embedding_client.embed_texts, texts_to_embed
+                )
+
+                # 6. Store Vectors in Pinecone
+                await asyncio.to_thread(
+                    vector_store.upsert_chunks,
+                    str(document.tenant_id),
+                    db_chunks,
+                    embeddings,
+                )
+
+            # 7. Finalize and mark document as COMPLETED
             document.status = DocumentStatus.COMPLETED
             await db.commit()
 

@@ -23,6 +23,8 @@ dependencies = [
     "tiktoken>=0.13.0",
     "pytesseract>=0.3.13",
     "pillow>=12.3.0",
+    "cohere>=7.0.8",
+    "tenacity>=9.1.4",
 ]
 
 [dependency-groups]

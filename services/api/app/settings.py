@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     api_version: str = "v1"
 
     # Database
-    # database_url: str = "postgresql+asyncpg://localhost:5432/doc_assistant"
     database_url: str
+
     # MinIO
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     huggingface_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
+    cohere_api_key: SecretStr | None = None  # <-- Added for Week 5 Embeddings
 
     # Pinecone
     pinecone_api_key: SecretStr | None = None
