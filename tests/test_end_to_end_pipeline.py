@@ -7,7 +7,6 @@ import pymupdf  # type: ignore
 from dotenv import load_dotenv
 from pinecone import Pinecone  # type: ignore
 
-# Load environment variables for Pinecone verification
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 BASE_URL = "http://localhost:8000"
@@ -16,7 +15,6 @@ CONTENT_TYPE = "application/pdf"
 
 
 def generate_text_pdf() -> bytes:
-    """Generates a valid PDF with an embedded text layer using PyMuPDF."""
     doc = pymupdf.open()
     page = doc.new_page()
     page.insert_text(
@@ -33,57 +31,66 @@ def run_test():
 
     pdf_bytes = generate_text_pdf()
 
-    # 1. Authenticate
-    print("\n🔐 Logging in...")
-    login_resp = httpx.post(
-        f"{BASE_URL}/auth/login",
-        data={"username": "test_uploader@acme.com", "password": "SecurePassword123!"},
-    )
-    if login_resp.status_code != 200:
-        print("❌ Login failed! Did you run the seed script?")
-        return
+    # Use a client with an explicit 30s timeout for all network calls
+    with httpx.Client(timeout=30.0) as client:
+        # 1. Authenticate
+        print("\n🔐 Logging in...")
+        login_resp = client.post(
+            f"{BASE_URL}/auth/login",
+            data={
+                "username": "test_uploader@acme.com",
+                "password": "SecurePassword123!",
+            },
+        )
+        if login_resp.status_code != 200:
+            print("❌ Login failed! Did you run the seed script?")
+            return
 
-    access_token = login_resp.json()["access_token"]
-    headers = {"Authorization": f"Bearer {access_token}"}
+        access_token = login_resp.json()["access_token"]
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-    # 2. Upload Flow
-    print("📤 Initializing upload...")
-    init_resp = httpx.post(
-        f"{BASE_URL}/v1/documents/upload",
-        json={
-            "filename": FILE_NAME,
-            "content_type": CONTENT_TYPE,
-            "file_size": len(pdf_bytes),
-        },
-        headers=headers,
-    )
+        # 2. Upload Flow
+        print("📤 Initializing upload...")
+        init_resp = client.post(
+            f"{BASE_URL}/v1/documents/upload",
+            json={
+                "filename": FILE_NAME,
+                "content_type": CONTENT_TYPE,
+                "file_size": len(pdf_bytes),
+            },
+            headers=headers,
+        )
 
-    doc_id = init_resp.json()["doc_id"]
-    upload_url = init_resp.json()["upload_url"]
+        doc_id = init_resp.json()["doc_id"]
+        upload_url = init_resp.json()["upload_url"]
 
-    print("💾 Uploading file bytes to MinIO...")
-    httpx.put(upload_url, content=pdf_bytes, headers={"Content-Type": CONTENT_TYPE})
+        print("💾 Uploading file bytes to MinIO...")
+        client.put(
+            upload_url, content=pdf_bytes, headers={"Content-Type": CONTENT_TYPE}
+        )
 
-    print("✅ Triggering background processing...")
-    httpx.patch(
-        f"{BASE_URL}/v1/documents/{doc_id}/status",
-        json={"status": "UPLOADED"},
-        headers=headers,
-    )
+        print("✅ Triggering background processing...")
+        client.patch(
+            f"{BASE_URL}/v1/documents/{doc_id}/status",
+            json={"status": "UPLOADED"},
+            headers=headers,
+        )
 
-    print(
-        "⏳ Waiting 8 seconds for extraction, Cohere embeddings, and Pinecone upsert..."
-    )
-    time.sleep(8)
+        print(
+            "⏳ Waiting 8 seconds for extraction, Cohere embeddings, and Pinecone upsert..."
+        )
+        time.sleep(8)
 
-    # 3. Verify PostgreSQL Status
-    doc_resp = httpx.get(f"{BASE_URL}/v1/documents/{doc_id}", headers=headers)
-    status = doc_resp.json()["status"]
-    print(f"\n📊 PostgreSQL Document Status: {status}")
+        # 3. Verify PostgreSQL Status
+        doc_resp = client.get(f"{BASE_URL}/v1/documents/{doc_id}", headers=headers)
+        status = doc_resp.json()["status"]
+        print(f"\n📊 PostgreSQL Document Status: {status}")
 
-    if status != "COMPLETED":
-        print("❌ Document did not complete processing. Check FastAPI logs for errors.")
-        return
+        if status != "COMPLETED":
+            print(
+                "❌ Document did not complete processing. Check FastAPI logs for errors."
+            )
+            return
 
     # 4. Verify Pinecone
     print("\n🌲 Connecting directly to Pinecone to verify vectors...")

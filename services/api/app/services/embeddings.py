@@ -11,7 +11,6 @@ class EmbeddingClient(ABC):
 
     @abstractmethod
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        """Converts a list of text strings into a list of vector arrays."""
         pass
 
 
@@ -19,15 +18,21 @@ class CohereEmbeddingClient(EmbeddingClient):
     """Cohere implementation of the EmbeddingClient."""
 
     def __init__(self):
-        if not settings.cohere_api_key:
-            raise ValueError("COHERE_API_KEY is missing from environment variables.")
-
-        # settings.cohere_api_key is a SecretStr, so we use get_secret_value()
-        self.client = cohere.Client(api_key=settings.cohere_api_key.get_secret_value())
-
-        # embed-english-v3.0 is Cohere's state-of-the-art model.
-        # It outputs vectors with 1024 dimensions.
         self.model = "embed-english-v3.0"
+        self._client = None  # Start with no client
+
+    @property
+    def client(self):
+        """Lazy initialization: Only connect to Cohere when we actually need it."""
+        if not self._client:
+            if not settings.cohere_api_key:
+                raise ValueError(
+                    "COHERE_API_KEY is missing from environment variables."
+                )
+            self._client = cohere.Client(
+                api_key=settings.cohere_api_key.get_secret_value()
+            )
+        return self._client
 
     @retry(
         wait=wait_exponential(multiplier=1, min=2, max=15),
@@ -35,11 +40,9 @@ class CohereEmbeddingClient(EmbeddingClient):
         reraise=True,
     )
     def _call_cohere_api(self, texts: List[str]) -> List[List[float]]:
-        """Wrapped API call with exponential backoff for rate limits."""
+        # Notice we use self.client here, which triggers the connection if it hasn't happened yet!
         response = self.client.embed(
-            texts=texts,
-            model=self.model,
-            input_type="search_document",  # Required by Cohere v3 for text being stored in a DB
+            texts=texts, model=self.model, input_type="search_document"
         )
         return response.embeddings
 
@@ -47,8 +50,6 @@ class CohereEmbeddingClient(EmbeddingClient):
         if not texts:
             return []
 
-        # Cohere API has a maximum limit of 96 texts per request on the free tier.
-        # We automatically batch the chunks here to prevent payload size errors.
         batch_size = 90
         all_embeddings = []
 
@@ -60,5 +61,4 @@ class CohereEmbeddingClient(EmbeddingClient):
         return all_embeddings
 
 
-# Instantiate a singleton to be used across the app
 embedding_client: EmbeddingClient = CohereEmbeddingClient()
