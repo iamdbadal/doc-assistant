@@ -5,8 +5,12 @@ from contextlib import asynccontextmanager
 from app.api.auth import get_current_tenant
 from app.api.auth import router as auth_router
 
-# --- WEEK 3 ADDITION: Import the documents router ---
+# --- Import the documents router ---
 from app.api.documents import router as documents_router
+
+# --- Import the query/RAG router ---
+# Adjust the import path if your file is named differently (e.g. app.api.rag or app.api.v1.endpoints.query)
+from app.api.v1.endpoints.query import router as query_router
 from app.db.models import Base, engine
 from app.settings import settings
 from fastapi import Depends, FastAPI, Request
@@ -67,6 +71,9 @@ app.include_router(auth_router)
 
 # --- WEEK 3 ADDITION: Include the Documents Router ---
 app.include_router(documents_router)
+
+# --- WEEK 6 ADDITION: Include the Query Router ---
+app.include_router(query_router)
 
 
 # Protected Tenant Isolation Test Route
