@@ -165,6 +165,74 @@ class Chunk(Base):
         back_populates="chunks",
     )
 
+    # --- Chat Session Model ---
+
+
+class ChatSession(Base):
+    """Represents a conversational session for a user."""
+
+    __tablename__ = "chat_sessions"
+
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String, default="New Conversation")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # --- Relationship to Chat Messages ---
+    messages: Mapped[list["ChatMessage"]] = relationship(
+        "ChatMessage", back_populates="session", cascade="all, delete-orphan"
+    )
+
+
+# --- Chat Message Model ---
+class ChatMessage(Base):
+    """Represents a single message turn in a chat session."""
+
+    __tablename__ = "chat_messages"
+
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    session_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("chat_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    role: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # 'user', 'assistant', 'system'
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Store JSON-serialized citations for assistant messages
+    citations: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    session: Mapped["ChatSession"] = relationship(
+        "ChatSession", back_populates="messages"
+    )
+
 
 DATABASE_URL = settings.database_url
 

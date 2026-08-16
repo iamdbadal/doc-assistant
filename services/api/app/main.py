@@ -8,6 +8,9 @@ from app.api.auth import router as auth_router
 # --- Import the documents router ---
 from app.api.documents import router as documents_router
 
+# --- Import the new Chat Streaming router ---
+from app.api.v1.endpoints.chat import router as chat_router
+
 # --- Import the query/RAG router ---
 # Adjust the import path if your file is named differently (e.g. app.api.rag or app.api.v1.endpoints.query)
 from app.api.v1.endpoints.query import router as query_router
@@ -41,6 +44,7 @@ logger.propagate = False
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Automatically create PostgreSQL tables on application startup
+    # This will now include your new ChatSession and ChatMessage tables!
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
@@ -74,6 +78,9 @@ app.include_router(documents_router)
 
 # --- WEEK 6 ADDITION: Include the Query Router ---
 app.include_router(query_router)
+
+# --- WEEK 8 ADDITION: Include the Chat Router ---
+app.include_router(chat_router, prefix="/v1/chat", tags=["chat"])
 
 
 # Protected Tenant Isolation Test Route
