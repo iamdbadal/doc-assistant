@@ -120,11 +120,14 @@ class LLMOrchestrator:
             logger.warning(f"Could not initialize OpenAI client: {e}")
 
         if not self.clients:
-            raise RuntimeError(
+            logger.warning(
                 "No LLM clients could be initialized. Please check API keys."
             )
 
     async def generate(self, prompt: str, system_prompt: str) -> str:
+        if not self.clients:
+            raise RuntimeError("No LLM clients configured. Please check API keys.")
+
         last_exception = None
 
         for client in self.clients:
@@ -142,6 +145,9 @@ class LLMOrchestrator:
     async def generate_stream(
         self, prompt: str, system_prompt: str
     ) -> AsyncGenerator[str, None]:
+        if not self.clients:
+            raise RuntimeError("No LLM clients configured. Please check API keys.")
+
         last_exception = None
 
         for client in self.clients:
