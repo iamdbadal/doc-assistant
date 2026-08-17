@@ -90,6 +90,15 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
+        exclude: >
+          (?x)^(
+              .*\.xcscheme$|
+              .*\.metadata$|
+              frontend/ios/.*|
+              frontend/macos/.*|
+              frontend/windows/.*|
+              frontend/linux/.*
+          )$
 
   # ---------------------------------------------------------------------------
   # Run unit tests before every commit
@@ -103,3 +112,20 @@ repos:
   #       language: system
   #       pass_filenames: false
   #       always_run: true
+
+  # ---------------------------------------------------------------------------
+  # Flutter formatting and linting
+  # ---------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: dart-format
+        name: dart format
+        entry: dart format
+        language: system
+        types: [dart]
+      - id: flutter-analyze
+        name: flutter analyze
+        entry: flutter analyze
+        language: system
+        types: [dart]
+        pass_filenames: false

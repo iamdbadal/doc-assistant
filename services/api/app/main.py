@@ -17,6 +17,7 @@ from app.api.v1.endpoints.query import router as query_router
 from app.db.models import Base, engine
 from app.settings import settings
 from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware  # <-- ADDED THIS IMPORT
 
 
 class JSONFormatter(logging.Formatter):
@@ -54,6 +55,15 @@ app = FastAPI(
     title=settings.project_name,
     version=settings.api_version,
     lifespan=lifespan,
+)
+
+# --- ADDED CORS MIDDLEWARE HERE ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins for local Flutter Web testing
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allows all headers (including Authorization and X-Tenant-ID)
 )
 
 
